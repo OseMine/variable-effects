@@ -4,17 +4,23 @@ use std::sync::Arc;
 mod effects;
 mod params;
 
-use effects::EffectType;
+use effects::Effect;
 use params::PluginParams;
+use crate::effects::EffectType;
 
 struct VariableEffects {
     params: Arc<PluginParams>,
+    effects: Vec<Box<dyn Effect>>,
 }
 
 impl Default for VariableEffects {
     fn default() -> Self {
         Self {
             params: Arc::new(PluginParams::default()),
+            effects: vec![
+                Box::new(effects::effect1::Effect1::new()),
+                Box::new(effects::effect2::Effect2::new()),
+            ],
         }
     }
 }
@@ -22,7 +28,7 @@ impl Default for VariableEffects {
 impl Plugin for VariableEffects {
     const NAME: &'static str = "Variable Effects";
     const VENDOR: &'static str = "The Muzikar";
-    const URL: &'static str = "https://github.com/osemine/variable-effects";
+    const URL: &'static str = "https://github.com/OseMine/variable-effects";
     const EMAIL: &'static str = "oskar.wiedrich@gmail.com";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -48,20 +54,45 @@ impl Plugin for VariableEffects {
         &mut self,
         buffer: &mut Buffer,
         _aux: &mut AuxiliaryBuffers,
-        _context: &mut impl ProcessContext<Self>,
+        context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        for channel_samples in buffer.iter_samples() {
-            let effect_type = self.params.effect_type.value();
-            
-            match effect_type {
-                EffectType::Effect1 => effects::effect1::process(channel_samples, &self.params),
-                EffectType::Effect2 => effects::effect2::process(channel_samples, &self.params),
+        let effect_index = self.params.effect_type.value().to_index();
+        let sample_rate = context.transport().sample_rate;
+        
+        for mut channel_samples in buffer.iter_samples() {
+            let mut samples: Vec<f32> = channel_samples.iter_mut().map(|s| *s).collect();
+
+            match self.params.effect_type.value() {
+                EffectType::Effect1 => {
+                    self.effects[effect_index].process(&mut samples, sample_rate, &self.params.effect1_params);
+                },
+                EffectType::Effect2 => {
+                    self.effects[effect_index].process(&mut samples, sample_rate, &self.params.effect2_params);
+                },
+            }
+
+            for (out, &processed) in channel_samples.iter_mut().zip(samples.iter()) {
+                *out = processed;
             }
         }
-    
+
         ProcessStatus::Normal
     }
-    
+
+    fn initialize(
+        &mut self,
+        _audio_io_layout: &AudioIOLayout,
+        _buffer_config: &BufferConfig,
+        _context: &mut impl InitContext<Self>,
+    ) -> bool {
+        true
+    }
+
+    fn reset(&mut self) {}
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        None
+    }
 }
 
 impl ClapPlugin for VariableEffects {
@@ -83,5 +114,6 @@ impl Vst3Plugin for VariableEffects {
     ];
 }
 
+// Exportiere die Plugin-Implementierungen für CLAP und VST3
 nih_export_clap!(VariableEffects);
 nih_export_vst3!(VariableEffects);

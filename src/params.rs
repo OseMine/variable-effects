@@ -1,18 +1,17 @@
 use nih_plug::prelude::*;
-use crate::effects::EffectType;
+use crate::effects::{EffectType, effect1, effect2, AsAny};
+use std::sync::Arc;
 
 #[derive(Params)]
 pub struct PluginParams {
     #[id = "effect_type"]
     pub effect_type: EnumParam<EffectType>,
 
-    // Effect 1 Parameter
-    #[id = "effect1_gain"]
-    pub effect1_gain: FloatParam,
+    #[nested(group = "Effect1")]
+    pub effect1_params: effect1::Effect1Params,
 
-    // Effect 2 Parameter
-    #[id = "effect2_frequency"]
-    pub effect2_frequency: FloatParam,
+    #[nested(group = "Effect2")]
+    pub effect2_params: effect2::Effect2Params,
 }
 
 impl Default for PluginParams {
@@ -22,25 +21,19 @@ impl Default for PluginParams {
                 "Effect Type",
                 EffectType::Effect1,
             ),
-            effect1_gain: FloatParam::new(
-                "Effect 1 Gain",
-                1.0,
-                FloatRange::Linear { min: 0.0, max: 2.0 },
-            )
-            .with_smoother(SmoothingStyle::Linear(50.0))
-            .with_step_size(0.01),
-            effect2_frequency: FloatParam::new(
-                "Effect 2 Frequency",
-                440.0,
-                FloatRange::Skewed {
-                    min: 20.0,
-                    max: 20000.0,
-                    factor: 0.5
-                },
-            )
-            .with_smoother(SmoothingStyle::Logarithmic(50.0))
-            .with_step_size(1.0)
-            .with_unit(" Hz"),
+            effect1_params: effect1::Effect1Params::default(),
+            effect2_params: effect2::Effect2Params::default(),
         }
     }
 }
+
+impl PluginParams {
+    pub fn active_params(&self) -> Arc<dyn Params> {
+        match self.effect_type.value() {
+            EffectType::Effect1 => Arc::new(self.effect1_params.clone()),
+            EffectType::Effect2 => Arc::new(self.effect2_params.clone()),
+        }
+    }
+}
+
+impl AsAny for PluginParams {}
