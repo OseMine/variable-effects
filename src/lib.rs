@@ -4,6 +4,7 @@ use std::sync::Arc;
 mod effects;
 mod params;
 
+
 use effects::Effect;
 use params::PluginParams;
 
@@ -17,8 +18,8 @@ impl Default for VariableEffects {
         Self {
             params: Arc::new(PluginParams::default()),
             effects: vec![
-                Box::new(effects::effect1::Effect1::new()),
-                Box::new(effects::effect2::Effect2::new()),
+                Box::new(effects::gain::Gain::new()),
+                Box::new(effects::chorus::Chorus::new()),
             ],
         }
     }
@@ -60,10 +61,9 @@ impl Plugin for VariableEffects {
         let sample_rate = context.transport().sample_rate;
 
         for mut channel_samples in buffer.iter_samples() {
-            // Daten vorbereiten
             let mut samples: Vec<f32> = channel_samples.iter_mut().map(|s| *s).collect();
 
-            // Effekt verarbeiten
+            // Effekt verarbeiten, wenn Index gültig ist
             if effect_index < self.effects.len() {
                 self.effects[effect_index].process(
                     &mut samples,
@@ -72,7 +72,6 @@ impl Plugin for VariableEffects {
                 );
             }
 
-            // Zurück in den Puffer schreiben
             for (out, &processed) in channel_samples.iter_mut().zip(samples.iter()) {
                 *out = processed;
             }
@@ -99,7 +98,7 @@ impl Plugin for VariableEffects {
 
 impl ClapPlugin for VariableEffects {
     const CLAP_ID: &'static str = "com.the-muzikar.variable-effects";
-    const CLAP_DESCRIPTION: Option<&'static str> = Some("A multi-effect plugin with variable effects");
+    const CLAP_DESCRIPTION: Option<&'static str> = Some("A plugin with modular effects");
     const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
     const CLAP_SUPPORT_URL: Option<&'static str> = None;
     const CLAP_FEATURES: &'static [ClapFeature] = &[
@@ -116,6 +115,5 @@ impl Vst3Plugin for VariableEffects {
     ];
 }
 
-// Exportiere die Plugin-Implementierungen für CLAP und VST3
 nih_export_clap!(VariableEffects);
 nih_export_vst3!(VariableEffects);

@@ -1,16 +1,16 @@
 use nih_plug::prelude::*;
-use crate::effects::{EffectType, effect1, effect2};
+use crate::effects::{gain, chorus, EffectType};
 
 #[derive(Params)]
 pub struct PluginParams {
     #[id = "effect_type"]
     pub effect_type: EnumParam<EffectType>,
 
-    #[nested(group = "Effect1")]
-    pub effect1_params: effect1::Effect1Params,
+    #[nested(group = "gain")]
+    pub gain_params: gain::GainParams,
 
-    #[nested(group = "Effect2")]
-    pub effect2_params: effect2::Effect2Params,
+    #[nested(group = "chorus")]
+    pub chorus_params: chorus::ChorusParams, // Neuer Chorus-Parameter
 }
 
 impl Default for PluginParams {
@@ -18,21 +18,20 @@ impl Default for PluginParams {
         Self {
             effect_type: EnumParam::new(
                 "Effect Type",
-                EffectType::Effect1,
+                EffectType::Gain, // Standardmäßig Gain
             ),
-            effect1_params: effect1::Effect1Params::default(),
-            effect2_params: effect2::Effect2Params::default(),
+            gain_params: gain::GainParams::default(),
+            chorus_params: chorus::ChorusParams::default(), // Standard-Chorus-Parameter
         }
     }
 }
 
 impl PluginParams {
-    // Diese Methode gibt die entsprechenden Parameter basierend auf dem Effektindex zurück
     pub fn get_params(&self, effect_index: usize) -> &dyn Params {
         match effect_index {
-            0 => &self.effect1_params,
-            1 => &self.effect2_params,
-            _ => &self.effect1_params, // Fallback zu Effect1 bei ungültigem Index
+            0 => &self.gain_params,
+            1 => &self.chorus_params, // Rückgabe der Chorus-Parameter
+            _ => &self.gain_params,
         }
     }
 }
