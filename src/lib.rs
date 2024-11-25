@@ -6,7 +6,6 @@ mod params;
 
 use effects::Effect;
 use params::PluginParams;
-use crate::effects::EffectType;
 
 struct VariableEffects {
     params: Arc<PluginParams>,
@@ -56,21 +55,24 @@ impl Plugin for VariableEffects {
         _aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        let effect_index = self.params.effect_type.value().to_index();
+        // Aktuellen Effekt auswählen
+        let effect_index = self.params.effect_type.value() as usize;
         let sample_rate = context.transport().sample_rate;
-        
+
         for mut channel_samples in buffer.iter_samples() {
+            // Daten vorbereiten
             let mut samples: Vec<f32> = channel_samples.iter_mut().map(|s| *s).collect();
 
-            match self.params.effect_type.value() {
-                EffectType::Effect1 => {
-                    self.effects[effect_index].process(&mut samples, sample_rate, &self.params.effect1_params);
-                },
-                EffectType::Effect2 => {
-                    self.effects[effect_index].process(&mut samples, sample_rate, &self.params.effect2_params);
-                },
+            // Effekt verarbeiten
+            if effect_index < self.effects.len() {
+                self.effects[effect_index].process(
+                    &mut samples,
+                    sample_rate,
+                    self.params.get_params(effect_index),
+                );
             }
 
+            // Zurück in den Puffer schreiben
             for (out, &processed) in channel_samples.iter_mut().zip(samples.iter()) {
                 *out = processed;
             }

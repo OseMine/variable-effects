@@ -1,7 +1,6 @@
-use crate::effects::Effect;
 use nih_plug::prelude::*;
 use std::sync::Arc;
-use std::any::Any;
+use crate::effects::Effect;
 
 #[derive(Params)]
 pub struct Effect1Params {
@@ -23,14 +22,6 @@ impl Default for Effect1Params {
     }
 }
 
-impl Clone for Effect1Params {
-    fn clone(&self) -> Self {
-        Self {
-            gain: self.gain.clone(),
-        }
-    }
-}
-
 pub struct Effect1 {
     params: Arc<Effect1Params>,
 }
@@ -44,14 +35,10 @@ impl Effect1 {
 }
 
 impl Effect for Effect1 {
-    fn process(&self, samples: &mut [f32], _sample_rate: f32, params: &dyn Params) {
-        let gain = if let Some(p) = params.as_any().downcast_ref::<Effect1Params>() {
-            p.gain.value()
-        } else {
-            1.0 // Default value if downcast fails
-        };
-        for sample in samples {
-            *sample *= gain;
+    fn process(&self, samples: &mut [f32], _sample_rate: f32, _params: &dyn Params) {
+        // Beispiel: einfacher Gain-Prozess
+        for sample in samples.iter_mut() {
+            *sample *= self.params.gain.value(); // Anwendung des Gain-Werts
         }
     }
 }

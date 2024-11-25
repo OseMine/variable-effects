@@ -1,6 +1,5 @@
 use nih_plug::prelude::*;
-use crate::effects::{EffectType, effect1, effect2, AsAny};
-use std::sync::Arc;
+use crate::effects::{EffectType, effect1, effect2};
 
 #[derive(Params)]
 pub struct PluginParams {
@@ -28,12 +27,12 @@ impl Default for PluginParams {
 }
 
 impl PluginParams {
-    pub fn active_params(&self) -> Arc<dyn Params> {
-        match self.effect_type.value() {
-            EffectType::Effect1 => Arc::new(self.effect1_params.clone()),
-            EffectType::Effect2 => Arc::new(self.effect2_params.clone()),
+    // Diese Methode gibt die entsprechenden Parameter basierend auf dem Effektindex zurück
+    pub fn get_params(&self, effect_index: usize) -> &dyn Params {
+        match effect_index {
+            0 => &self.effect1_params,
+            1 => &self.effect2_params,
+            _ => &self.effect1_params, // Fallback zu Effect1 bei ungültigem Index
         }
     }
 }
-
-impl AsAny for PluginParams {}
