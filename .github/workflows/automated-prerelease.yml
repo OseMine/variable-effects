@@ -26,10 +26,20 @@ jobs:
           echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
           echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Generate changelog
+      - name: Find last successful build tag
+        id: last_successful_tag
+        run: |
+          last_tag=$(git tag --sort=-creatordate | grep -E '^prerelease-' | head -n 1)
+          echo "last_successful_tag=$last_tag" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog since last successful build
         id: changelog
         run: |
-          changelog=$(git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0)..HEAD)
+          if [ -z "${{ steps.last_successful_tag.outputs.last_successful_tag }}" ]; then
+            changelog=$(git log --pretty=format:"- %s (%h)")
+          else
+            changelog=$(git log --pretty=format:"- %s (%h)" ${{ steps.last_successful_tag.outputs.last_successful_tag }}..HEAD)
+          fi
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$changelog" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
