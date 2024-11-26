@@ -1,6 +1,6 @@
 use nih_plug::prelude::*;
-use std::sync::Arc;
 use crate::Effect;
+use std::sync::Arc;
 
 pub struct Gain {
     params: Arc<GainParams>,
@@ -17,17 +17,10 @@ impl Default for GainParams {
         Self {
             gain: FloatParam::new(
                 "Gain",
-                util::db_to_gain(0.0),
-                FloatRange::Skewed {
-                    min: util::db_to_gain(-30.0),
-                    max: util::db_to_gain(30.0),
-                    factor: FloatRange::gain_skew_factor(-30.0, 30.0),
-                },
+                0.0,
+                FloatRange::Linear { min: -60.0, max: 12.0 }, // -60 dB bis +12 dB
             )
-            .with_smoother(SmoothingStyle::Logarithmic(50.0))
-            .with_unit(" dB")
-            .with_value_to_string(formatters::v2s_f32_gain_to_db(2))
-            .with_string_to_value(formatters::s2v_f32_gain_to_db()),
+            .with_smoother(SmoothingStyle::Logarithmic(50.0)), // Glättung über 50ms
         }
     }
 }
@@ -42,9 +35,15 @@ impl Gain {
 
 impl Effect for Gain {
     fn process(&mut self, samples: &mut [f32], _sample_rate: f32, _params: &dyn Params) {
-        let gain = self.params.gain.smoothed.next();
+        // Den aktuellen Gain-Wert in Dezibel holen
+        let gain_db = self.params.gain.value();
+        
+        // Gain-Wert in linearen Verstärkungsfaktor umrechnen
+        let gain_factor = 10f32.powf(gain_db / 20.0);
+
+        // Audio-Daten verarbeiten
         for sample in samples.iter_mut() {
-            *sample *= gain;
+            *sample *= gain_factor;
         }
     }
 }
